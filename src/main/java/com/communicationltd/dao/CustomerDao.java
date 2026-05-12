@@ -42,23 +42,21 @@ public class CustomerDao {
     }
 
     public static void addCustomer(String email, String customerName, String phone, String address, int packageId, int sectorId) {
-        String sql = """
-                INSERT INTO customers(user_email, customer_name, phone, address, package_id, sector_id)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """;
+        // INTENTIONALLY VULNERABLE FOR COURSEWORK DEMO.
+        // Part A section 4 / Part B demo: Add Customer SQL Injection and Stored XSS storage.
+        // Customer input is stored without sanitization and concatenated directly into SQL.
+        String sql = "INSERT INTO customers(user_email, customer_name, phone, address, package_id, sector_id) VALUES ('"
+                + email + "', '"
+                + customerName + "', '"
+                + phone + "', '"
+                + address + "', "
+                + packageId + ", "
+                + sectorId + ")";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             Statement stmt = conn.createStatement()) {
 
-            ps.setString(1, email);
-            ps.setString(2, customerName);
-            ps.setString(3, phone);
-            ps.setString(4, address);
-            ps.setInt(5, packageId);
-            ps.setInt(6, sectorId);
-
-            ps.executeUpdate();
-
+            stmt.executeUpdate(sql);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

@@ -27,6 +27,8 @@ public class CustomerServlet extends HttpServlet {
         int packageId = Integer.parseInt(request.getParameter("packageId"));
         int sectorId = Integer.parseInt(request.getParameter("sectorId"));
 
+        // INTENTIONALLY VULNERABLE FOR COURSEWORK DEMO.
+        // Part A section 4 / Part B demo: raw customer fields are passed through for SQLi/XSS demos.
         CustomerDao.addCustomer(email, customerName, phone, address, packageId, sectorId);
 
         session.setAttribute("customerName", customerName);

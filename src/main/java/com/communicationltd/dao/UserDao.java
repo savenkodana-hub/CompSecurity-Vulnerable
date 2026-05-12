@@ -9,20 +9,52 @@ public class UserDao {
     public static boolean registerUser(String username, String email, String hashedPassword, String salt) {
         try (Connection conn = DatabaseConnection.getConnection()) {
 
-            String sql = "INSERT INTO users(username, email, password, salt) VALUES (?, ?, ?, ?)";
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setString(1, username);
-                ps.setString(2, email);
-                ps.setString(3, hashedPassword);
-                ps.setString(4, salt);
+            // INTENTIONALLY VULNERABLE FOR COURSEWORK DEMO.
+            // Part A section 1 / Part B demo: Register SQL Injection.
+            // User input is concatenated directly into SQL instead of using PreparedStatement parameters.
+            try (Statement stmt = conn.createStatement()) {
+                String checkSql = "SELECT id FROM users WHERE username = '" + username + "' OR email = '" + email + "'";
+                ResultSet rs = stmt.executeQuery(checkSql);
+                if (rs.next()) {
+                    return false;
+                }
 
-                ps.executeUpdate();
+                String insertSql = "INSERT INTO users(username, email, password, salt) VALUES ('"
+                        + username + "', '"
+                        + email + "', '"
+                        + hashedPassword + "', '"
+                        + salt + "')";
+
+                stmt.executeUpdate(insertSql);
                 return true;
             }
 
         } catch (Exception e) {
             e.printStackTrace();
             return false;
+        }
+    }
+
+    public static User findUserByVulnerableLogin(String usernameOrEmail, String password) {
+        // INTENTIONALLY VULNERABLE FOR COURSEWORK DEMO.
+        // Part A section 3 / Part B demo: Login SQL Injection.
+        // Username/email and password input are concatenated directly into the SQL query.
+        String sql = "SELECT * FROM users WHERE (username = '" + usernameOrEmail
+                + "' OR email = '" + usernameOrEmail
+                + "') AND ('" + password + "' = '" + password + "')";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement()) {
+
+            ResultSet rs = stmt.executeQuery(sql);
+            if (!rs.next()) {
+                return null;
+            }
+
+            return mapUser(rs);
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -40,20 +72,24 @@ public class UserDao {
                 return null;
             }
 
-            User user = new User();
-            user.setId(rs.getInt("id"));
-            user.setUsername(rs.getString("username"));
-            user.setEmail(rs.getString("email"));
-            user.setPasswordHash(rs.getString("password"));
-            user.setSalt(rs.getString("salt"));
-            user.setFailedLoginAttempts(rs.getInt("failed_login_attempts"));
-            user.setLocked(rs.getInt("locked") == 1);
-
-            return user;
+            return mapUser(rs);
 
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static User mapUser(ResultSet rs) throws SQLException {
+        User user = new User();
+        user.setId(rs.getInt("id"));
+        user.setUsername(rs.getString("username"));
+        user.setEmail(rs.getString("email"));
+        user.setPasswordHash(rs.getString("password"));
+        user.setSalt(rs.getString("salt"));
+        user.setFailedLoginAttempts(rs.getInt("failed_login_attempts"));
+        user.setLocked(rs.getInt("locked") == 1);
+
+        return user;
     }
 
     public static boolean emailExists(String email) {

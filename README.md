@@ -1,8 +1,10 @@
-# Communication LTD Cyber Project
+# Communication LTD Cyber Project - Vulnerable Part B Version
 
-Secure Java Servlet/JSP implementation for Part A of the Communication LTD coursework.
+This copy is the intentionally vulnerable Part B version of the Communication LTD coursework project.
 
-## How to run
+WARNING: This version is for local educational demonstration only. Do not deploy it, expose it to a network, or use it with real data. Several required flows deliberately use unsafe SQL string concatenation and unsafe HTML rendering.
+
+## How to run locally
 
 1. Install Java 17 and Maven.
 2. Copy local config templates:
@@ -23,51 +25,69 @@ http://localhost:8080/
 
 The database is initialized on startup. `/init-db` is also available if manual initialization is needed.
 
+## Intentionally vulnerable locations
+
+- Register SQLi: `src/main/java/com/communicationltd/dao/UserDao.java`, `registerUser`
+- Login SQLi: `src/main/java/com/communicationltd/dao/UserDao.java`, `findUserByVulnerableLogin`, used by `src/main/java/com/communicationltd/controller/LoginServlet.java`
+- Add Customer SQLi: `src/main/java/com/communicationltd/dao/CustomerDao.java`, `addCustomer`
+- Add Customer / Dashboard Stored XSS: `src/main/java/com/communicationltd/controller/CustomerServlet.java`, `src/main/java/com/communicationltd/dao/CustomerDao.java`, and `src/main/webapp/dashboard.jsp`
+
+All vulnerable code is marked with comments containing:
+
+```text
+INTENTIONALLY VULNERABLE FOR COURSEWORK DEMO.
+```
+
+## Local demo ideas
+
+Register SQLi:
+
+- Open `/register.jsp`.
+- Enter normal-looking registration data first to create a user.
+- Then try input containing a single quote in `username` or `email` to show that the concatenated SQL breaks or can be manipulated because the values are not parameterized.
+
+Login SQLi:
+
+- Make sure at least one user exists.
+- Open `/login.jsp`.
+- Use this username/email payload and any password:
+
+```text
+' OR 1=1) --
+```
+
+- The vulnerable login query treats the injected SQL match as authenticated.
+
+Add Customer SQLi:
+
+- Log in and open `/customer-details.jsp`.
+- Enter this as the customer name, with any normal values in the other fields:
+
+```text
+Eve', '555-9999', 'Injected address', 1, 1) --
+```
+
+- The add-customer insert is built with string concatenation, so this payload changes the inserted phone/address/package/sector values instead of being handled as a plain customer name.
+
+Stored XSS:
+
+- Log in and open `/customer-details.jsp`.
+- Enter this as the customer name:
+
+```html
+<script>alert('Stored XSS demo')</script>
+```
+
+- Submit the form.
+- The payload is stored in the database and later rendered raw on `/dashboard.jsp`, so it executes when the dashboard displays the stored customer name.
+
 ## Main routes
 
 - `/register` - creates a new user with username, email, and password.
-- `/login` - authenticates a user.
-- `/customer-details` - adds customer details after login.
-- `/dashboard.jsp` - displays the logged-in user and newly added customer.
+- `/login` - authenticates a user, including the intentionally vulnerable SQLi demo path.
+- `/customer-details` - adds customer details after login using intentionally vulnerable SQL.
+- `/dashboard.jsp` - displays the logged-in user and intentionally renders customer name without HTML encoding for the Stored XSS demo.
 - `/change-password` - changes password after verifying the current password.
 - `/forgot-password` - starts password reset by email code.
 - `/verify-code` - verifies the reset code.
 - `/reset-password` - sets a new password after reset-code verification.
-
-## Security features
-
-- Password policy is read from `src/main/resources/password-config.properties`.
-- Passwords are stored with HMAC-SHA256 and a per-password salt.
-- Password history prevents reuse of the last configured number of passwords. The current config uses 3.
-- Login attempt limit is read from `login.max.attempts`.
-- Users are locked after the configured number of failed login attempts.
-- Failed login counter resets after a successful login.
-- SQL access in the secure implementation uses `PreparedStatement` parameters.
-- Dashboard output is HTML-encoded to prevent stored XSS.
-- Runtime database and local secret config files are ignored by git.
-
-## Configuration files
-
-Tracked templates:
-
-- `src/main/resources/mail-config.example.properties`
-- `src/main/resources/security-config.example.properties`
-- `src/main/resources/password-config.properties`
-
-Local files not tracked:
-
-- `communication_ltd.db`
-- `src/main/resources/mail-config.properties`
-- `src/main/resources/security-config.properties`
-
-Use the `.example.properties` files as templates and keep real secrets only in the local ignored files or environment variables:
-
-- `MAIL_USERNAME`
-- `MAIL_APP_PASSWORD`
-- `MAIL_SMTP_HOST`
-- `MAIL_SMTP_PORT`
-- `HMAC_SECRET`
-
-## Notes
-
-This branch/state is for the secure Part A implementation only. Attack-demonstration routes are not included here.

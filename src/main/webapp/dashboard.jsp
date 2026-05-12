@@ -34,7 +34,10 @@
         <div class="panel">
             <h2>Customer Status</h2>
             <% if (customerName != null) { %>
-                <p class="message message-success">Customer <strong><%= StringEscapeUtils.escapeHtml4(customerName) %></strong> added successfully.</p>
+                <%-- INTENTIONALLY VULNERABLE FOR COURSEWORK DEMO.
+                     Part A section 4 / Part B demo: Stored XSS.
+                     Stored customer input is rendered without HTML encoding. --%>
+                <p class="message message-success">Customer <strong><%= customerName %></strong> added successfully.</p>
             <% } else { %>
                 <p class="muted">No customer was added in this session.</p>
             <% } %>
