@@ -1,0 +1,8 @@
+password
+admin
+qwerty
+123456
+communication
+internet
+user
+login
