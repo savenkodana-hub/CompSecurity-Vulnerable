@@ -46,6 +46,8 @@ public class UserDao {
             user.setEmail(rs.getString("email"));
             user.setPasswordHash(rs.getString("password"));
             user.setSalt(rs.getString("salt"));
+            user.setFailedLoginAttempts(rs.getInt("failed_login_attempts"));
+            user.setLocked(rs.getInt("locked") == 1);
 
             return user;
 
@@ -63,6 +65,40 @@ public class UserDao {
             ps.setString(1, email);
             ResultSet rs = ps.executeQuery();
             return rs.next();
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void resetLoginAttempts(String email) {
+        String sql = "UPDATE users SET failed_login_attempts = 0, locked = 0 WHERE email = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, email);
+            ps.executeUpdate();
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void recordFailedLogin(String email, int maxAttempts) {
+        String sql = """
+                UPDATE users
+                SET failed_login_attempts = failed_login_attempts + 1,
+                    locked = CASE WHEN failed_login_attempts + 1 >= ? THEN 1 ELSE locked END
+                WHERE email = ?
+                """;
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, maxAttempts);
+            ps.setString(2, email);
+            ps.executeUpdate();
 
         } catch (Exception e) {
             throw new RuntimeException(e);

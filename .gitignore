@@ -4,6 +4,12 @@ target/
 !**/src/test/**/target/
 .kotlin
 
+### Runtime database and local secrets ###
+communication_ltd.db
+*.db
+src/main/resources/mail-config.properties
+src/main/resources/security-config.properties
+
 ### IntelliJ IDEA ###
 .idea/modules.xml
 .idea/jarRepositories.xml

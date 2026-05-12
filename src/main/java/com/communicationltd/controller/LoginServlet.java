@@ -3,8 +3,10 @@ package com.communicationltd.controller;
 import com.communicationltd.dao.UserDao;
 import com.communicationltd.dao.CustomerDao;
 import com.communicationltd.model.User;
+import com.communicationltd.config.PasswordPolicyConfig;
 import com.communicationltd.security.PasswordHasher;
 
+import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 import java.io.IOException;
@@ -13,7 +15,7 @@ import java.io.IOException;
 public class LoginServlet extends HttpServlet {
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
+            throws IOException, ServletException {
 
         String usernameOrEmail = request.getParameter("usernameOrEmail");
         String password = request.getParameter("password");
@@ -22,12 +24,19 @@ public class LoginServlet extends HttpServlet {
             User user = UserDao.findUserByUsernameOrEmail(usernameOrEmail);
 
             if (user != null) {
+                if (user.isLocked()) {
+                    showLoginError(request, response, "Account is locked after too many failed login attempts");
+                    return;
+                }
+
                 String storedHash = user.getPasswordHash();
                 String salt = user.getSalt();
 
                 String enteredHash = PasswordHasher.hash(password, salt);
 
                 if (storedHash.equals(enteredHash)) {
+                    UserDao.resetLoginAttempts(user.getEmail());
+
                     HttpSession session = request.getSession();
 
                     session.setAttribute("username", user.getUsername());
@@ -47,15 +56,23 @@ public class LoginServlet extends HttpServlet {
                     return;
                 }
 
-                response.getWriter().println("Incorrect password");
+                UserDao.recordFailedLogin(user.getEmail(), PasswordPolicyConfig.getMaxLoginAttempts());
+                showLoginError(request, response, "Username and/or password incorrect");
                 return;
             }
 
-            response.getWriter().println("User does not exist");
+            showLoginError(request, response, "Username and/or password incorrect");
 
         } catch (Exception e) {
             e.printStackTrace();
-            response.getWriter().println("Login error");
+            showLoginError(request, response, "Login error");
         }
+    }
+
+    private void showLoginError(HttpServletRequest request, HttpServletResponse response, String message)
+            throws ServletException, IOException {
+
+        request.setAttribute("loginError", message);
+        request.getRequestDispatcher("/login.jsp").forward(request, response);
     }
 }

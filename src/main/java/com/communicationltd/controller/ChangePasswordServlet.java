@@ -5,6 +5,7 @@ import com.communicationltd.security.PasswordValidator;
 import com.communicationltd.config.PasswordPolicyConfig;
 import com.communicationltd.util.DatabaseConnection;
 
+import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 import java.io.IOException;
@@ -15,7 +16,8 @@ import java.util.Base64;
 @WebServlet("/change-password")
 public class ChangePasswordServlet extends HttpServlet {
 
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws IOException, ServletException {
 
         HttpSession session = request.getSession(false);
 
@@ -30,13 +32,13 @@ public class ChangePasswordServlet extends HttpServlet {
         String confirmPassword = request.getParameter("confirmPassword");
 
         if (!newPassword.equals(confirmPassword)) {
-            response.getWriter().println("Passwords do not match");
+            showChangePasswordError(request, response, "Passwords do not match");
             return;
         }
 
         String validation = PasswordValidator.validate(newPassword);
         if (validation != null) {
-            response.getWriter().println(validation);
+            showChangePasswordError(request, response, validation);
             return;
         }
 
@@ -49,7 +51,7 @@ public class ChangePasswordServlet extends HttpServlet {
             ResultSet userRs = selectUser.executeQuery();
 
             if (!userRs.next()) {
-                response.getWriter().println("User not found");
+                showChangePasswordError(request, response, "User not found");
                 return;
             }
 
@@ -59,7 +61,7 @@ public class ChangePasswordServlet extends HttpServlet {
             String oldPasswordHash = PasswordHasher.hash(oldPassword, currentSalt);
 
             if (!currentHash.equals(oldPasswordHash)) {
-                response.getWriter().println("Current password is incorrect");
+                showChangePasswordError(request, response, "Current password is incorrect");
                 return;
             }
 
@@ -77,14 +79,14 @@ public class ChangePasswordServlet extends HttpServlet {
                 String newPasswordWithOldSalt = PasswordHasher.hash(newPassword, oldHistorySalt);
 
                 if (oldHistoryHash.equals(newPasswordWithOldSalt)) {
-                    response.getWriter().println("You cannot use one of your last 3 passwords");
+                    showChangePasswordError(request, response, "You cannot use one of your last 3 passwords");
                     return;
                 }
             }
 
             String newPasswordWithCurrentSalt = PasswordHasher.hash(newPassword, currentSalt);
             if (currentHash.equals(newPasswordWithCurrentSalt)) {
-                response.getWriter().println("You cannot use your current password");
+                showChangePasswordError(request, response, "You cannot use your current password");
                 return;
             }
 
@@ -111,8 +113,15 @@ public class ChangePasswordServlet extends HttpServlet {
             response.sendRedirect("dashboard.jsp");
 
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            showChangePasswordError(request, response, "Could not change password, please try again");
         }
+    }
+
+    private void showChangePasswordError(HttpServletRequest request, HttpServletResponse response, String message)
+            throws ServletException, IOException {
+
+        request.setAttribute("changePasswordError", message);
+        request.getRequestDispatcher("/change-password.jsp").forward(request, response);
     }
 
     private static String generateSalt() {

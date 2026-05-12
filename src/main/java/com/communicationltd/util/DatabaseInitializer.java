@@ -16,9 +16,19 @@ public class DatabaseInitializer {
                     username TEXT NOT NULL UNIQUE,
                     email TEXT NOT NULL UNIQUE,
                     password TEXT NOT NULL,
-                    salt TEXT NOT NULL
+                    salt TEXT NOT NULL,
+                    failed_login_attempts INTEGER DEFAULT 0,
+                    locked INTEGER DEFAULT 0
                 );
             """);
+
+            if (!columnExists(conn, "users", "failed_login_attempts")) {
+                stmt.execute("ALTER TABLE users ADD COLUMN failed_login_attempts INTEGER DEFAULT 0");
+            }
+
+            if (!columnExists(conn, "users", "locked")) {
+                stmt.execute("ALTER TABLE users ADD COLUMN locked INTEGER DEFAULT 0");
+            }
 
             stmt.execute("""
                 CREATE TABLE IF NOT EXISTS packages (

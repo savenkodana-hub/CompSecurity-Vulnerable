@@ -21,7 +21,7 @@ public class RegisterServlet extends HttpServlet {
 
         String validation = PasswordValidator.validate(password);
         if (validation != null) {
-            response.getWriter().println(validation);
+            showRegisterError(request, response, validation);
             return;
         }
 
@@ -31,10 +31,17 @@ public class RegisterServlet extends HttpServlet {
         boolean registered = UserDao.registerUser(username, email, hashedPassword, salt);
 
         if (!registered) {
-            response.getWriter().println("Username or email already exists");
+            showRegisterError(request, response, "Username or email already exists");
             return;
         }
 
         response.sendRedirect("login.jsp");
+    }
+
+    private void showRegisterError(HttpServletRequest request, HttpServletResponse response, String message)
+            throws ServletException, IOException {
+
+        request.setAttribute("registerError", message);
+        request.getRequestDispatcher("/register.jsp").forward(request, response);
     }
 }

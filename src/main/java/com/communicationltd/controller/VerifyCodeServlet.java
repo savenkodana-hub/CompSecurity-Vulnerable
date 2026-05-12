@@ -2,6 +2,7 @@ package com.communicationltd.controller;
 
 import com.communicationltd.util.DatabaseConnection;
 
+import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 import java.io.IOException;
@@ -13,7 +14,7 @@ import java.sql.ResultSet;
 public class VerifyCodeServlet extends HttpServlet {
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
+            throws IOException, ServletException {
 
         String email = request.getParameter("email");
         String code = request.getParameter("code");
@@ -34,7 +35,7 @@ public class VerifyCodeServlet extends HttpServlet {
             ResultSet rs = ps.executeQuery();
 
             if (!rs.next() || !rs.getString("token_hash").equals(code)) {
-                response.getWriter().println("Invalid code");
+                showVerifyCodeError(request, response, "Invalid code");
                 return;
             }
 
@@ -44,7 +45,14 @@ public class VerifyCodeServlet extends HttpServlet {
             response.sendRedirect("new-password.jsp");
 
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            showVerifyCodeError(request, response, "Could not verify code, please try again");
         }
+    }
+
+    private void showVerifyCodeError(HttpServletRequest request, HttpServletResponse response, String message)
+            throws ServletException, IOException {
+
+        request.setAttribute("verifyCodeError", message);
+        request.getRequestDispatcher("/verify-code.jsp").forward(request, response);
     }
 }

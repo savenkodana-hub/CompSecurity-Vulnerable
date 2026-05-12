@@ -3,21 +3,21 @@
 <html>
 <head>
     <title>Communication LTD</title>
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/assets/css/style.css">
 </head>
-<body>
+<body class="page auth-page">
 
-<h1>Communication LTD</h1>
-<h2>Welcome to the system</h2>
+<main class="card">
+    <div class="brand">
+        <h1 class="brand-title">Communication LTD</h1>
+        <p class="brand-subtitle">Secure customer and internet package management</p>
+    </div>
 
-<br><br>
-
-<a href="login.jsp">
-    <button>Login</button>
-</a>
-
-<a href="register.jsp">
-    <button>Register</button>
-</a>
+    <div class="home-actions">
+        <a class="btn" href="login.jsp">Login</a>
+        <a class="btn btn-secondary" href="register.jsp">Register</a>
+    </div>
+</main>
 
 </body>
 </html>

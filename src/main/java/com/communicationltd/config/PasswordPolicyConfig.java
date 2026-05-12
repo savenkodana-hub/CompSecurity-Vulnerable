@@ -1,7 +1,12 @@
 package com.communicationltd.config;
 
+import java.io.BufferedReader;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashSet;
 import java.util.Properties;
+import java.util.Set;
 
 public class PasswordPolicyConfig {
 
@@ -61,7 +66,46 @@ public class PasswordPolicyConfig {
     }
 
     public static String[] getForbiddenWords() {
+        Set<String> forbiddenWords = new LinkedHashSet<>();
+
         String words = get("password.forbidden.words", "password,admin,123456,qwerty");
-        return words.split("\\s*,\\s*");
+        for (String word : words.split("\\s*,\\s*")) {
+            if (!word.isBlank()) {
+                forbiddenWords.add(word);
+            }
+        }
+
+        forbiddenWords.addAll(loadDictionaryWords());
+
+        return forbiddenWords.toArray(new String[0]);
+    }
+
+    private static Set<String> loadDictionaryWords() {
+        Set<String> words = new LinkedHashSet<>();
+
+        try (InputStream input = PasswordPolicyConfig.class
+                .getClassLoader()
+                .getResourceAsStream("dictionary.txt")) {
+
+            if (input == null) {
+                return words;
+            }
+
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(input, StandardCharsets.UTF_8))) {
+
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    String word = line.trim();
+                    if (!word.isBlank()) {
+                        words.add(word);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to load dictionary.txt", e);
+        }
+
+        return words;
     }
 }

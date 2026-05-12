@@ -5,6 +5,7 @@ import com.communicationltd.dao.UserDao;
 import com.communicationltd.util.DatabaseConnection;
 import com.communicationltd.util.EmailSender;
 
+import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 import java.io.IOException;
@@ -15,12 +16,12 @@ import java.sql.PreparedStatement;
 public class ForgotPasswordServlet extends HttpServlet {
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
+            throws IOException, ServletException {
 
         String email = request.getParameter("email");
 
         if (!UserDao.emailExists(email)) {
-            response.getWriter().println("User does not exist");
+            showForgotPasswordError(request, response, "User does not exist");
             return;
         }
 
@@ -39,7 +40,14 @@ public class ForgotPasswordServlet extends HttpServlet {
             response.sendRedirect("verify-code.jsp");
 
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            showForgotPasswordError(request, response, "Could not send reset code, please try again");
         }
+    }
+
+    private void showForgotPasswordError(HttpServletRequest request, HttpServletResponse response, String message)
+            throws ServletException, IOException {
+
+        request.setAttribute("forgotPasswordError", message);
+        request.getRequestDispatcher("/forgot-password.jsp").forward(request, response);
     }
 }

@@ -5,6 +5,7 @@ import com.communicationltd.security.PasswordValidator;
 import com.communicationltd.config.PasswordPolicyConfig;
 import com.communicationltd.util.DatabaseConnection;
 
+import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 import java.io.IOException;
@@ -15,7 +16,8 @@ import java.util.Base64;
 @WebServlet("/reset-password")
 public class ResetPasswordServlet extends HttpServlet {
 
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws IOException, ServletException {
 
         HttpSession session = request.getSession(false);
 
@@ -29,13 +31,13 @@ public class ResetPasswordServlet extends HttpServlet {
         String confirmPassword = request.getParameter("confirmPassword");
 
         if (!newPassword.equals(confirmPassword)) {
-            response.getWriter().println("Passwords do not match");
+            showResetPasswordError(request, response, "Passwords do not match");
             return;
         }
 
         String validation = PasswordValidator.validate(newPassword);
         if (validation != null) {
-            response.getWriter().println(validation);
+            showResetPasswordError(request, response, validation);
             return;
         }
 
@@ -48,7 +50,7 @@ public class ResetPasswordServlet extends HttpServlet {
             ResultSet userRs = selectUser.executeQuery();
 
             if (!userRs.next()) {
-                response.getWriter().println("User not found");
+                showResetPasswordError(request, response, "User not found");
                 return;
             }
 
@@ -69,14 +71,14 @@ public class ResetPasswordServlet extends HttpServlet {
                 String checkHash = PasswordHasher.hash(newPassword, oldSalt);
 
                 if (oldHash.equals(checkHash)) {
-                    response.getWriter().println("You cannot use one of your last 3 passwords");
+                    showResetPasswordError(request, response, "You cannot use one of your last 3 passwords");
                     return;
                 }
             }
 
             String checkCurrent = PasswordHasher.hash(newPassword, currentSalt);
             if (currentHash.equals(checkCurrent)) {
-                response.getWriter().println("You cannot use your current password");
+                showResetPasswordError(request, response, "You cannot use your current password");
                 return;
             }
 
@@ -107,11 +109,19 @@ public class ResetPasswordServlet extends HttpServlet {
 
             session.removeAttribute("resetEmail");
 
-            response.getWriter().println("Password changed successfully");
+            request.setAttribute("loginSuccess", "Password changed successfully, please log in");
+            request.getRequestDispatcher("/login.jsp").forward(request, response);
 
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            showResetPasswordError(request, response, "Could not reset password, please try again");
         }
+    }
+
+    private void showResetPasswordError(HttpServletRequest request, HttpServletResponse response, String message)
+            throws ServletException, IOException {
+
+        request.setAttribute("resetPasswordError", message);
+        request.getRequestDispatcher("/new-password.jsp").forward(request, response);
     }
 
     private static String generateSalt() {
