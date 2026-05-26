@@ -1,5 +1,13 @@
 # Communication LTD Cyber Project - Vulnerable Part B Version
 
+## Team Members
+
+- Full Name: דנה סבנקו | ID: 323082115
+- Full Name: ענבר רחנמי | ID: 318913670
+- Full Name: רותם אלוני | ID: 213388028
+- Full Name: חנה שמואל | ID: 214275703
+- Full Name: איתי קריטמלר | ID: 322567264
+
 This copy is the intentionally vulnerable Part B version of the Communication LTD coursework project.
 
 WARNING: This version is for local educational demonstration only. Do not deploy it, expose it to a network, or use it with real data. Several required flows deliberately use unsafe SQL string concatenation and unsafe HTML rendering.
